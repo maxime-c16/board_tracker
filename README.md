@@ -225,6 +225,41 @@ These remain suitable for downstream tracking initialization:
 - run summary
 - resize metadata for original-to-working coordinate mapping
 
+## Video Tracking
+
+Track the visible board segment through a video using an existing `tracking_points.json` initialization:
+
+```bash
+python -m board_init.track_video \
+  --video IMG_8432.MOV \
+  --init-tracking-json outputs/video_init_frame0_try1/tracking_points.json \
+  --output-dir outputs/video_track_try1_full \
+  --max-side 720
+```
+
+This writes:
+
+- `tracked_points.jsonl`
+- `tracked_points.csv`
+- `tracking_summary.json`
+- optionally `tracking_overlay.mp4`
+
+Analyze the tracked motion to extract an oscillation pattern:
+
+```bash
+python -m board_init.analyze_tracking \
+  --tracking-jsonl outputs/video_track_try1_full/tracked_points.jsonl \
+  --video IMG_8432.MOV \
+  --output-dir outputs/video_track_try1_full/oscillation
+```
+
+This writes:
+
+- `oscillation_summary.json`
+- `oscillation_series.json`
+- `oscillation_plot.png`
+- sample peak/trough validation frames
+
 ## Troubleshooting macOS OpenCV GUI
 
 If GUI mode fails, check the diagnostic line printed by the CLI.

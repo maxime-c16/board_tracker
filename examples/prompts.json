@@ -1,0 +1,5 @@
+{
+  "positive": [[640, 360]],
+  "negative": [[350, 700]],
+  "select_mask_index": 0
+}
