@@ -61,6 +61,14 @@ On this machine:
 - safest validation path: headless CLI and tests
 - GUI should be treated as optional and only used if OpenCV has a working local display backend
 
+macOS reproduction note:
+
+- this branch was also validated on `/Volumes/DiveRecorderGPT/cv_diving`
+- the tracker and oscillation pipeline run on macOS
+- for long runs on macOS, prefer `--no-overlay-video`
+- the board-locked tracker completed cleanly on macOS without overlay video
+- overlay-video finalization for long runs may stall after writing the `.mp4`
+
 Checkpoint path used during development:
 
 ```text
@@ -238,6 +246,29 @@ That initialization writes:
 - [outputs/video_init_frame0_gui_replay/best_overlay.png](/home/macauchy/board_tracker/outputs/video_init_frame0_gui_replay/best_overlay.png)
 - [outputs/video_init_frame0_gui_replay/tracking_points.json](/home/macauchy/board_tracker/outputs/video_init_frame0_gui_replay/tracking_points.json)
 
+macOS reproduction of that baseline:
+
+```bash
+./.venv/bin/python -m board_init \
+  --image outputs/video_frame0.png \
+  --checkpoint /Volumes/DiveRecorderGPT/cv_diving/models/sam/sam_vit_b_01ec64.pth \
+  --model-type vit_b \
+  --headless \
+  --roi 0,1458,448,1609 \
+  --positive 320,1557 \
+  --positive 101,1540 \
+  --negative 142,1575 \
+  --max-side 1080 \
+  --device auto \
+  --output-dir outputs/video_init_frame0_gui_replay_mac \
+  --verbose
+```
+
+Artifacts written on macOS:
+
+- [outputs/video_init_frame0_gui_replay_mac/best_overlay.png](/Volumes/DiveRecorderGPT/cv_diving/outputs/video_init_frame0_gui_replay_mac/best_overlay.png)
+- [outputs/video_init_frame0_gui_replay_mac/tracking_points.json](/Volumes/DiveRecorderGPT/cv_diving/outputs/video_init_frame0_gui_replay_mac/tracking_points.json)
+
 ## Current Tracking Rework Status
 
 The old production path was sparse LK tracking plus affine fill-in. That is no longer the intended direction.
@@ -258,6 +289,64 @@ Tracking states now mean:
 - `invalid`: no acceptable board-supported geometry and no safe fallback
 
 Quality artifacts now include:
+
+## macOS Reproduction Status
+
+The Linux branch was checked on macOS against the local `IMG_8432.MOV`.
+
+Successful macOS tracking command:
+
+```bash
+./.venv/bin/python -m board_init.track_video \
+  --video IMG_8432.MOV \
+  --init-tracking-json outputs/video_init_frame0_gui_replay_mac/tracking_points.json \
+  --output-dir outputs/mac_branch_repro_track_replay \
+  --max-side 1080 \
+  --no-overlay-video \
+  --verbose
+```
+
+That run completed with:
+
+- `1117` tracked frames total
+- tracking summary written to [outputs/mac_branch_repro_track_replay/tracking_summary.json](/Volumes/DiveRecorderGPT/cv_diving/outputs/mac_branch_repro_track_replay/tracking_summary.json)
+
+State counts on macOS for that replay baseline:
+
+- `seed`: `1`
+- `tracked`: `46`
+- `recovered`: `63`
+- `predicted`: `603`
+- `invalid`: `404`
+
+Oscillation analysis command on macOS:
+
+```bash
+./.venv/bin/python -m board_init.analyze_tracking \
+  --tracking-jsonl outputs/mac_branch_repro_track_replay/tracked_points.jsonl \
+  --video IMG_8432.MOV \
+  --output-dir outputs/mac_branch_repro_track_replay/oscillation \
+  --verbose
+```
+
+macOS oscillation artifacts:
+
+- [outputs/mac_branch_repro_track_replay/oscillation/oscillation_summary.json](/Volumes/DiveRecorderGPT/cv_diving/outputs/mac_branch_repro_track_replay/oscillation/oscillation_summary.json)
+- [outputs/mac_branch_repro_track_replay/oscillation/oscillation_plot.png](/Volumes/DiveRecorderGPT/cv_diving/outputs/mac_branch_repro_track_replay/oscillation/oscillation_plot.png)
+- [outputs/mac_branch_repro_track_replay/oscillation/contact_sheet.png](/Volumes/DiveRecorderGPT/cv_diving/outputs/mac_branch_repro_track_replay/oscillation/contact_sheet.png)
+
+Current macOS oscillation summary for this branch:
+
+- valid frames accepted by oscillation analysis: `109`
+- dominant window: frame `20` to frame `1003`
+- dominant-window peaks: `90, 106, 802`
+- dominant-window troughs: `81, 289`
+
+Interpretation:
+
+- the branch reproduces on macOS in the sense that the board-locked tracker and oscillation analysis both run successfully
+- the current branch baseline is still not strong enough to be called a robust production oscillation extraction on this video
+- most frames are still landing in `predicted` or `invalid`, so the next technical work should focus on board-support recovery quality, not on platform portability
 
 - board length / angle continuity
 - centroid drift vs seed geometry

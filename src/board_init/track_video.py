@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import platform
 from pathlib import Path
 from typing import Sequence
 
@@ -33,6 +34,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     configure_logging(args.verbose)
+
+    if platform.system() == "Darwin" and not args.no_overlay_video:
+        logging.getLogger("board_init.track_video").warning(
+            "On macOS, tracking_overlay.mp4 finalization can stall for long runs. "
+            "Use --no-overlay-video for the most reliable tracking pass."
+        )
 
     payload = load_tracking_points(args.init_tracking_json)
     config = TrackingConfig(max_error=args.max_error, save_overlay_video=not args.no_overlay_video, max_side=args.max_side)

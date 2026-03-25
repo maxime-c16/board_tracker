@@ -251,6 +251,19 @@ python -m board_init.track_video \
   --max-side 720
 ```
 
+On macOS, for long runs, prefer:
+
+```bash
+python -m board_init.track_video \
+  --video IMG_8432.MOV \
+  --init-tracking-json outputs/video_init_frame0_try1/tracking_points.json \
+  --output-dir outputs/video_track_try1_full \
+  --max-side 720 \
+  --no-overlay-video
+```
+
+The board-locked tracker itself is validated on macOS, but `tracking_overlay.mp4` finalization can stall on long runs. `--no-overlay-video` is the reliable path for full-video tracking on the Mac.
+
 This writes:
 
 - `tracked_points.jsonl`
