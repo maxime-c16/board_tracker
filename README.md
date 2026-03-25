@@ -2,7 +2,7 @@
 
 Offline springboard-board initialization and mask extraction for diving analysis using classic Meta Segment Anything with the official `segment-anything` package and `SamPredictor`.
 
-The primary workflow is now local macOS use with a native OpenCV window. Headless mode remains supported for scripted or remote runs.
+The original primary workflow was local macOS use with a native OpenCV window. On this machine, assume a Linux environment under `/home/macauchy/board_tracker`; headless mode is the safest default unless you have a working local OpenCV GUI session.
 
 ## Project Layout
 
@@ -17,33 +17,47 @@ The primary workflow is now local macOS use with a native OpenCV window. Headles
 └── tests/
 ```
 
-## macOS Setup
+## Setup
 
 Create and activate a local virtual environment:
 
 ```bash
-cd /Volumes/DiveRecorderGPT/cv_diving
+cd /home/macauchy/board_tracker
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python -m pip install -e .
 ```
 
-Helper script:
+Helper script on this machine:
 
 ```bash
-./scripts/bootstrap_macos.sh
+./scripts/bootstrap.sh
 source .venv/bin/activate
 ```
 
-If you prefer the existing generic bootstrap script, `./scripts/bootstrap.sh` still works.
+The macOS helper script, `./scripts/bootstrap_macos.sh`, remains available for local Cocoa-backed setups.
 
-## PyTorch On Mac
+## PyTorch
 
 `segment-anything` needs PyTorch, but the right wheel depends on your machine.
 
-Apple Silicon / Metal (`mps`) example:
+Linux CPU example:
+
+```bash
+python -m pip install torch torchvision
+python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+```
+
+Linux CUDA example:
+
+```bash
+python -m pip install torch torchvision
+python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+```
+
+macOS Apple Silicon / Metal (`mps`) example:
 
 ```bash
 python -m pip install torch torchvision
@@ -64,7 +78,7 @@ The CLI accepts `--device auto|cpu|cuda|mps`. `auto` prefers `cuda`, then `mps`,
 Recommended local checkpoint path:
 
 ```text
-/Volumes/DiveRecorderGPT/cv_diving/models/sam/sam_vit_b_01ec64.pth
+/home/macauchy/board_tracker/models/sam/sam_vit_b_01ec64.pth
 ```
 
 The expected local command path is therefore:
@@ -72,7 +86,7 @@ The expected local command path is therefore:
 ```bash
 python -m board_init \
   --image /path/to/image.jpg \
-  --checkpoint /Volumes/DiveRecorderGPT/cv_diving/models/sam/sam_vit_b_01ec64.pth \
+  --checkpoint /home/macauchy/board_tracker/models/sam/sam_vit_b_01ec64.pth \
   --model-type vit_b
 ```
 
@@ -98,12 +112,12 @@ These fields are written into `prompts.json`, `best_features.json`, `candidate_*
 
 ## Local GUI Workflow
 
-Native OpenCV GUI mode on macOS:
+Native OpenCV GUI mode when a local display backend is available:
 
 ```bash
 python -m board_init \
   --image /path/to/image.jpg \
-  --checkpoint /Volumes/DiveRecorderGPT/cv_diving/models/sam/sam_vit_b_01ec64.pth \
+  --checkpoint /home/macauchy/board_tracker/models/sam/sam_vit_b_01ec64.pth \
   --model-type vit_b \
   --device auto \
   --gui \
@@ -125,7 +139,7 @@ Interactive controls:
 - `Enter` or `r`: run prediction
 - Candidate review: `n` next, `p` previous, `Enter` or `a` accept, `q` cancel
 
-If `--gui` is omitted, the tool will still choose GUI mode automatically on a likely local macOS session when no positive prompts were supplied.
+If `--gui` is omitted, the tool may still choose GUI mode automatically when it detects a likely local GUI session. On this Linux machine, do not assume that path is available unless OpenCV has a usable backend and your session has display access.
 
 If you accept an ROI in GUI mode, SAM inference runs only on that cropped working region and masks are mapped back to the original image for export.
 
@@ -136,7 +150,7 @@ Headless CLI prompts:
 ```bash
 python -m board_init \
   --image /path/to/image.jpg \
-  --checkpoint /Volumes/DiveRecorderGPT/cv_diving/models/sam/sam_vit_b_01ec64.pth \
+  --checkpoint /home/macauchy/board_tracker/models/sam/sam_vit_b_01ec64.pth \
   --model-type vit_b \
   --headless \
   --max-side 2048 \
@@ -150,7 +164,7 @@ Headless JSON prompts:
 ```bash
 python -m board_init \
   --image /path/to/image.jpg \
-  --checkpoint /Volumes/DiveRecorderGPT/cv_diving/models/sam/sam_vit_b_01ec64.pth \
+  --checkpoint /home/macauchy/board_tracker/models/sam/sam_vit_b_01ec64.pth \
   --model-type vit_b \
   --headless \
   --prompts-json examples/prompts.json \
@@ -162,7 +176,7 @@ Finalize a reviewed candidate:
 ```bash
 python -m board_init \
   --image /path/to/image.jpg \
-  --checkpoint /Volumes/DiveRecorderGPT/cv_diving/models/sam/sam_vit_b_01ec64.pth \
+  --checkpoint /home/macauchy/board_tracker/models/sam/sam_vit_b_01ec64.pth \
   --model-type vit_b \
   --headless \
   --prompts-json examples/prompts.json \
@@ -179,7 +193,7 @@ Example:
 ```bash
 python -m board_init \
   --image /path/to/very_large_photo.jpg \
-  --checkpoint /Volumes/DiveRecorderGPT/cv_diving/models/sam/sam_vit_b_01ec64.pth \
+  --checkpoint /home/macauchy/board_tracker/models/sam/sam_vit_b_01ec64.pth \
   --model-type vit_b \
   --gui \
   --max-side 1600
@@ -260,15 +274,15 @@ This writes:
 - `oscillation_plot.png`
 - sample peak/trough validation frames
 
-## Troubleshooting macOS OpenCV GUI
+## Troubleshooting OpenCV GUI
 
-If GUI mode fails, check the diagnostic line printed by the CLI.
+If GUI mode fails, check the diagnostic line printed by the CLI. On this Linux machine, headless mode is expected unless you have a working local display session.
 
 Common cases:
 
-- OpenCV built without Cocoa/Qt support: reinstall `opencv-python` inside the venv.
-- Terminal launched from a remote SSH session: local macOS auto-GUI will not be assumed.
-- PyTorch installed without MPS support: use `--device cpu` or reinstall PyTorch.
+- OpenCV built without a usable GUI backend: reinstall `opencv-python` inside the venv.
+- Terminal launched from a remote SSH session or without `DISPLAY`/Wayland access: auto-GUI will not be assumed.
+- PyTorch installed without GPU support: use `--device cpu` or reinstall PyTorch for your platform.
 
 Quick checks:
 

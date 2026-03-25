@@ -7,7 +7,7 @@ VENV_DIR="${ROOT_DIR}/.venv"
 python3 -m venv "${VENV_DIR}"
 source "${VENV_DIR}/bin/activate"
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install -r "${ROOT_DIR}/requirements.txt"
+python -m pip install -r "${ROOT_DIR}/requirements-dev.txt"
 python -m pip install -e "${ROOT_DIR}"
 
 echo "Environment ready at ${VENV_DIR}"
